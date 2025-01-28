@@ -200,21 +200,21 @@ export const TabList = ({
   // Navigation handlers
   const handleBack = () => {
     const webview = webviewRefs.current[activeTab];
-    if (webview && webview.canGoBack()) {
+    if (webview && webview.getWebContentsId && webview.canGoBack()) {
       webview.goBack();
     }
   };
 
   const handleForward = () => {
     const webview = webviewRefs.current[activeTab];
-    if (webview && webview.canGoForward()) {
+    if (webview && webview.getWebContentsId && webview.canGoForward()) {
       webview.goForward();
     }
   };
 
   const handleReload = () => {
     const webview = webviewRefs.current[activeTab];
-    if (webview) {
+    if (webview && webview.getWebContentsId) {
       webview.reload();
     }
   };

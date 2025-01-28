@@ -12,7 +12,8 @@ export const BrowserWindow = ({
   tabs: initialTabs = [DEFAULT_PERPLEXITY_URL],
   setTabs, 
   activeTab: externalActiveTab,
-  setActiveTab: setExternalActiveTab 
+  setActiveTab: setExternalActiveTab,
+  setActiveApp
 }) => {
   const { activeView, setActiveView, setCurrentQuery, currentQuery } = useContext(ViewStateContext);
   const { handleClearClick } = useContext(SearchContext);
@@ -43,14 +44,44 @@ export const BrowserWindow = ({
     setExternalActiveTab(tab);
   };
 
-  // Sync internal tabs with external tabs
+  // Sync internal tabs with external tabs but preserve order
   useEffect(() => {
     if (initialTabs && !arraysEqual(initialTabs, internalTabs)) {
-      setInternalTabs(
-        initialTabs.includes(DEFAULT_PERPLEXITY_URL) ? 
-          initialTabs : 
-          [DEFAULT_PERPLEXITY_URL, ...initialTabs]
-      );
+      // Get the set of current tabs for comparison
+      const currentSet = new Set(internalTabs);
+      const newSet = new Set(initialTabs);
+      
+      // Check if we need to add or remove tabs
+      const needsUpdate = 
+        // Has new tabs that aren't in current set
+        initialTabs.some(tab => !currentSet.has(tab)) ||
+        // Has removed tabs that are in current set
+        internalTabs.some(tab => !newSet.has(tab) && tab !== DEFAULT_PERPLEXITY_URL);
+      
+      if (needsUpdate) {
+        // Start with current ordered tabs
+        const orderedTabs = [...internalTabs];
+        
+        // Remove tabs that are no longer in initialTabs
+        const filteredTabs = orderedTabs.filter(
+          tab => tab === DEFAULT_PERPLEXITY_URL || initialTabs.includes(tab)
+        );
+        
+        // Add any new tabs after the default tab
+        const defaultTabIndex = filteredTabs.indexOf(DEFAULT_PERPLEXITY_URL);
+        initialTabs.forEach(tab => {
+          if (!filteredTabs.includes(tab)) {
+            filteredTabs.splice(defaultTabIndex + 1, 0, tab);
+          }
+        });
+        
+        // Ensure default tab is present
+        if (!filteredTabs.includes(DEFAULT_PERPLEXITY_URL)) {
+          filteredTabs.unshift(DEFAULT_PERPLEXITY_URL);
+        }
+        
+        setInternalTabs(filteredTabs);
+      }
     }
   }, [initialTabs]);
 
@@ -76,20 +107,51 @@ export const BrowserWindow = ({
     }
   }, [externalActiveTab]);
 
-  // Add error handling for webview loading
-  const handleWebViewError = (tabUrl, errorCode, errorDescription) => {
-    console.error(`Webview error for ${tabUrl}:`, errorCode, errorDescription);
-    if (errorCode === -3 && tabUrl === DEFAULT_PERPLEXITY_URL) {
+  // Handle Perplexity search with error handling
+  useEffect(() => {
+    if (activeView === 'browser' && currentQuery) {
+      const searchUrl = `https://www.perplexity.ai/search?q=${encodeURIComponent(currentQuery)}&focus=internet`;
       const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
-      if (webview && !defaultTabState.isLoading) {
-        // Retry loading after a short delay
-        setTimeout(() => {
-          if (pendingSearchRef.current) {
-            webview.loadURL(pendingSearchRef.current);
-          }
-        }, 100);
+
+      if (webview && readyWebviews.has(DEFAULT_PERPLEXITY_URL)) {
+        webview.loadURL(searchUrl);
+        setActiveTab(DEFAULT_PERPLEXITY_URL);
+      } else {
+        // Store the URL to load once webview is ready
+        pendingSearchRef.current = searchUrl;
       }
     }
+  }, [activeView, currentQuery]);
+
+  const handleHomeClick = () => {
+    // Store current tabs and their order before going home
+    const currentTabs = [...internalTabs];
+    
+    // Reset to default tab
+    setInternalTabs([DEFAULT_PERPLEXITY_URL]);
+    setTabs(currentTabs); // Keep the external tabs state as is
+    setActiveTab(DEFAULT_PERPLEXITY_URL);
+    
+    // Clean up all webview refs except default
+    Object.keys(webviewRefs.current).forEach(url => {
+      if (url !== DEFAULT_PERPLEXITY_URL) {
+        delete webviewRefs.current[url];
+      }
+    });
+
+    // Don't try to reload the default webview, just reset states
+    setDefaultTabState(prev => ({ ...prev, isLoading: false }));
+    pendingSearchRef.current = null;
+    
+    // Reset view state
+    setActiveView('none');
+    setCurrentQuery("");
+    handleClearClick();
+  };
+
+  // Remove handleWebViewError since we don't need complex error handling anymore
+  const handleWebViewError = (tabUrl, errorCode, errorDescription) => {
+    console.error(`Webview error for ${tabUrl}:`, errorCode, errorDescription);
   };
 
   const handleWebViewReady = (tabUrl) => {
@@ -100,65 +162,48 @@ export const BrowserWindow = ({
     });
 
     if (tabUrl === DEFAULT_PERPLEXITY_URL) {
-      setDefaultTabState(prev => ({ ...prev, isReady: true, isLoading: false }));
+      setDefaultTabState(prev => ({ ...prev, isReady: true }));
       
+      // Load any pending search when webview becomes ready
       if (pendingSearchRef.current) {
         const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
         if (webview) {
-          setDefaultTabState(prev => ({ ...prev, isLoading: true }));
-          try {
-            webview.loadURL(pendingSearchRef.current);
-            pendingSearchRef.current = null;
-            setActiveTab(DEFAULT_PERPLEXITY_URL);
-          } catch (error) {
-            console.error('Error loading URL:', error);
-            setDefaultTabState(prev => ({ ...prev, isLoading: false }));
-          }
+          webview.loadURL(pendingSearchRef.current);
+          pendingSearchRef.current = null;
+          setActiveTab(DEFAULT_PERPLEXITY_URL);
         }
       }
     }
   };
 
-  // Handle Perplexity search with error handling
-  useEffect(() => {
-    if (activeView === 'browser' && currentQuery) {
-      const searchUrl = `https://www.perplexity.ai/search?q=${encodeURIComponent(currentQuery)}&focus=internet`;
-      const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
-
-      if (defaultTabState.isReady && webview && !defaultTabState.isLoading) {
-        setDefaultTabState(prev => ({ ...prev, isLoading: true }));
-        try {
-          webview.loadURL(searchUrl);
-      setActiveTab(DEFAULT_PERPLEXITY_URL);
-        } catch (error) {
-          console.error('Error loading search URL:', error);
-          setDefaultTabState(prev => ({ ...prev, isLoading: false }));
-    }
-      } else {
-        pendingSearchRef.current = searchUrl;
-      }
-    }
-  }, [activeView, currentQuery, defaultTabState.isReady]);
-
   // Handle bookmark/app clicks
   useEffect(() => {
     if (activeApp && activeView === 'browser') {
-      if (!internalTabs.includes(activeApp)) {
+      // Only add the app if we're not coming from a search
+      if (!currentQuery && !internalTabs.includes(activeApp)) {
         const defaultTabIndex = internalTabs.indexOf(DEFAULT_PERPLEXITY_URL);
         const newTabs = [...internalTabs];
         newTabs.splice(defaultTabIndex + 1, 0, activeApp);
         setInternalTabs(newTabs);
         setTabs(newTabs);
+        setActiveTab(activeApp);
+      } else if (currentQuery) {
+        // If we're coming from a search, just focus the default tab
+        setActiveTab(DEFAULT_PERPLEXITY_URL);
+      } else {
+        // If the app is already in tabs, just focus it
+        setActiveTab(activeApp);
       }
-      setActiveTab(activeApp);
     }
-  }, [activeApp, activeView]);
+  }, [activeApp, activeView, currentQuery]);
 
-  const handleHomeClick = () => {
-    setActiveView('none');
-    setCurrentQuery("");
-    handleClearClick();
-  };
+  // Add a cleanup effect for activeApp
+  useEffect(() => {
+    if (activeView === 'none') {
+      // Reset activeApp when going home
+      setActiveApp && setActiveApp(null);
+    }
+  }, [activeView, setActiveApp]);
 
   const handleCloseTab = (tabToClose) => {
     if (tabToClose === DEFAULT_PERPLEXITY_URL) {
@@ -178,7 +223,14 @@ export const BrowserWindow = ({
     if (activeTab === tabToClose) {
       const newActiveIndex = Math.max(0, closingIndex - 1);
       const newActiveTab = newTabs[newActiveIndex] || DEFAULT_PERPLEXITY_URL;
+      
+      // Always set the active tab first
       setActiveTab(newActiveTab);
+      
+      // If switching to default tab, store it as pending
+      if (newActiveTab === DEFAULT_PERPLEXITY_URL) {
+        pendingSearchRef.current = DEFAULT_PERPLEXITY_URL;
+      }
     }
 
     // Clean up webview reference

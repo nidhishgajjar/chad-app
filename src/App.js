@@ -68,12 +68,12 @@ function App() {
 
   return (
     <div>
-            {!user ? (
-              <Login />
-            ) : (
-              renderComponentsBasedOnUserStatus()
-            )}
-          </div>
+      {!user ? (
+        <Login />
+      ) : (
+        renderComponentsBasedOnUserStatus()
+      )}
+    </div>
   );
 }
 

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const WebViewContainer = ({
   tabs,
   activeTab,
-    webviewRefs,
+  webviewRefs,
   onWebViewReady,
   onWebViewError
 }) => {
@@ -30,7 +30,7 @@ export const WebViewContainer = ({
 
       const webview = webviewRefs.current[tabUrl];
       if (webview && !mountedRef.current.has(tabUrl)) {
-          webview.addEventListener('dom-ready', handleDomReady);
+        webview.addEventListener('dom-ready', handleDomReady);
         webview.addEventListener('did-fail-load', handleLoadAbort);
         cleanup[tabUrl] = {
           domReady: handleDomReady,
@@ -44,7 +44,7 @@ export const WebViewContainer = ({
       Object.entries(cleanup).forEach(([tabUrl, handlers]) => {
         const webview = webviewRefs.current[tabUrl];
         if (webview) {
-            webview.removeEventListener('dom-ready', handlers.domReady);
+          webview.removeEventListener('dom-ready', handlers.domReady);
           webview.removeEventListener('did-fail-load', handlers.loadAbort);
         }
       });
@@ -75,9 +75,21 @@ export const WebViewContainer = ({
                 ref={el => {
                   if (el && !webviewRefs.current[tabUrl]) {
                     webviewRefs.current[tabUrl] = el;
+                    // Add event listeners immediately after ref is set
+                    el.addEventListener('dom-ready', () => {
+                      if (onWebViewReady) {
+                        onWebViewReady(tabUrl);
+                      }
+                      mountedRef.current.add(tabUrl);
+                    });
+                    el.addEventListener('did-fail-load', (event, errorCode, errorDescription) => {
+                      if (onWebViewError) {
+                        onWebViewError(tabUrl, errorCode, errorDescription);
+                      }
+                    });
                   }
                 }}
-                src={isMounted ? undefined : tabUrl}
+                src={tabUrl}
                 className="w-full h-full bg-white dark:bg-neutral-900"
                 allowpopups="true"
                 webpreferences="contextIsolation=yes, nodeIntegration=no"
