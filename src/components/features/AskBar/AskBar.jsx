@@ -4,8 +4,8 @@ import { SearchContext } from "../../../contexts/search";
 import { EditAppModal } from '../EditAppModal/EditAppModal';
 import { SearchInput } from './SearchInput/SearchInput';
 import { AppList } from './AppList/AppList';
-import { AppWindow } from "../../layout/AppWindow/AppWindow";
-import { DEFAULT_PERPLEXITY_URL } from "../../layout/AppWindow/constants";
+import { BrowserWindow } from "../../layout/BrowserWindow/BrowserWindow";
+import { DEFAULT_PERPLEXITY_URL } from "../../layout/BrowserWindow/constants";
 import './AskBar.css';
 
 export const AskBar = () => {
@@ -84,7 +84,7 @@ export const AskBar = () => {
       )}
 
       {activeView === 'browser' && (
-        <AppWindow
+        <BrowserWindow
           activeApp={state.activeApp}
           tabs={state.tabs}
           setTabs={tabs => setState(prev => ({ ...prev, tabs: Array.isArray(tabs) ? tabs : [DEFAULT_PERPLEXITY_URL] }))}

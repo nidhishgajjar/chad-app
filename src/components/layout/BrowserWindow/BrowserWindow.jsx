@@ -5,8 +5,9 @@ import { NavigationBar } from "./NavigationBar";
 import { TabList } from "./TabList";
 import { WebViewContainer } from "./WebViewContainer";
 import { FIXED_TABS, DEFAULT_PERPLEXITY_URL } from "./constants";
+import './BrowserWindow.css';
 
-export const AppWindow = ({ 
+export const BrowserWindow = ({ 
   activeApp, 
   tabs: initialTabs = [DEFAULT_PERPLEXITY_URL],
   setTabs, 
@@ -158,9 +159,9 @@ export const AppWindow = ({
   };
 
   return (
-    <div className="fixed flex flex-col w-full h-full p-5 md:px-5 py-5">
+    <div className="fixed flex flex-col w-full h-full">
       {activeView === 'browser' && (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-white dark:bg-neutral-900 rounded-lg overflow-hidden shadow-lg transition-all duration-200">
           <NavigationBar
             onHomeClick={handleHomeClick}
           />
