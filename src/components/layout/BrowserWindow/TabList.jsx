@@ -199,24 +199,16 @@ export const TabList = ({
 
   // Navigation handlers
   const handleBack = () => {
-    console.log('🔄 Attempting to go back');
     const webview = webviewRefs.current[activeTab];
     if (webview && webview.canGoBack()) {
-      console.log('✅ Going back');
       webview.goBack();
-    } else {
-      console.log('❌ Cannot go back');
     }
   };
 
   const handleForward = () => {
-    console.log('🔄 Attempting to go forward');
     const webview = webviewRefs.current[activeTab];
     if (webview && webview.canGoForward()) {
-      console.log('✅ Going forward');
       webview.goForward();
-    } else {
-      console.log('❌ Cannot go forward');
     }
   };
 
@@ -227,68 +219,21 @@ export const TabList = ({
     }
   };
 
-  // Handle swipe gestures through IPC
+  // Add gesture handling
   useEffect(() => {
-    console.log('🔍 Setting up swipe gesture handler for tab:', activeTab);
-    const webview = webviewRefs.current[activeTab];
-    
-    if (webview) {
-      console.log('✅ Found webview for tab:', activeTab);
-      
-      const handleSwipe = (direction) => {
-        console.log('🔄 Received swipe event:', direction);
-        console.log('Current webview state:', {
-          canGoBack: webview.canGoBack?.(),
-          canGoForward: webview.canGoForward?.(),
-          ready: !!webview.getWebContentsId
-        });
-
-        if (direction === 'right') {
+    const handleSwipe = (event) => {
+      // Check if it's a horizontal swipe on trackpad with 2 fingers
+      if (event.deltaX && Math.abs(event.deltaX) > Math.abs(event.deltaY) && event.touches?.length === 2) {
+        if (event.deltaX > 50) { // Threshold for right swipe
           handleBack();
-        } else if (direction === 'left') {
+        } else if (event.deltaX < -50) { // Threshold for left swipe
           handleForward();
         }
-      };
-
-      console.log('🔄 Registering swipe event handler');
-      const cleanup = window.electron?.ipcRenderer?.on('swipe', handleSwipe);
-
-      return () => {
-        console.log('🧹 Cleaning up swipe handler for tab:', activeTab);
-        if (cleanup) cleanup();
-      };
-    } else {
-      console.log('❌ No webview found for tab:', activeTab);
     }
-  }, [activeTab]);
-
-  useEffect(() => {
-    console.log('Setting up navigation handlers');
-    const webview = webviewRefs.current[activeTab];
-    
-    if (webview) {
-      // Wait for webview to be ready
-      const handleDomReady = () => {
-        console.log('Webview ready:', {
-          canGoBack: webview.canGoBack(),
-          canGoForward: webview.canGoForward()
-        });
-
-        // Log navigation state changes
-        webview.addEventListener('did-navigate', () => {
-          console.log('Navigation state:', {
-            canGoBack: webview.canGoBack(),
-            canGoForward: webview.canGoForward()
-          });
-        });
       };
 
-      webview.addEventListener('dom-ready', handleDomReady);
-      
-      return () => {
-        webview.removeEventListener('dom-ready', handleDomReady);
-      };
-    }
+    window.addEventListener('wheel', handleSwipe, { passive: true });
+    return () => window.removeEventListener('wheel', handleSwipe);
   }, [activeTab]);
 
     return (

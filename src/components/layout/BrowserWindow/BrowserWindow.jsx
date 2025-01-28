@@ -1,7 +1,7 @@
 import React, { useContext, useRef, useEffect, useState } from "react";
 import { ViewStateContext } from "../../../contexts/viewstate";
 import { SearchContext } from "../../../contexts/search";
-import { NavigationBar } from "./NavigationBar";
+import { NavigationBar } from "../../features/Nav/NavigationBar";
 import { TabList } from "./TabList";
 import { WebViewContainer } from "./WebViewContainer";
 import { FIXED_TABS, DEFAULT_PERPLEXITY_URL } from "./constants";
@@ -30,7 +30,8 @@ export const BrowserWindow = ({
   // Track default tab state separately
   const [defaultTabState, setDefaultTabState] = useState({
     url: DEFAULT_PERPLEXITY_URL,
-    isReady: false
+    isReady: false,
+    isLoading: false
   });
 
   // Maintain internal active tab state
@@ -75,6 +76,22 @@ export const BrowserWindow = ({
     }
   }, [externalActiveTab]);
 
+  // Add error handling for webview loading
+  const handleWebViewError = (tabUrl, errorCode, errorDescription) => {
+    console.error(`Webview error for ${tabUrl}:`, errorCode, errorDescription);
+    if (errorCode === -3 && tabUrl === DEFAULT_PERPLEXITY_URL) {
+      const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
+      if (webview && !defaultTabState.isLoading) {
+        // Retry loading after a short delay
+        setTimeout(() => {
+          if (pendingSearchRef.current) {
+            webview.loadURL(pendingSearchRef.current);
+          }
+        }, 100);
+      }
+    }
+  };
+
   const handleWebViewReady = (tabUrl) => {
     setReadyWebviews(prev => {
       const next = new Set(prev);
@@ -83,28 +100,40 @@ export const BrowserWindow = ({
     });
 
     if (tabUrl === DEFAULT_PERPLEXITY_URL) {
-      setDefaultTabState(prev => ({ ...prev, isReady: true }));
+      setDefaultTabState(prev => ({ ...prev, isReady: true, isLoading: false }));
       
       if (pendingSearchRef.current) {
         const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
         if (webview) {
-          webview.loadURL(pendingSearchRef.current);
-          pendingSearchRef.current = null;
-          setActiveTab(DEFAULT_PERPLEXITY_URL);
+          setDefaultTabState(prev => ({ ...prev, isLoading: true }));
+          try {
+            webview.loadURL(pendingSearchRef.current);
+            pendingSearchRef.current = null;
+            setActiveTab(DEFAULT_PERPLEXITY_URL);
+          } catch (error) {
+            console.error('Error loading URL:', error);
+            setDefaultTabState(prev => ({ ...prev, isLoading: false }));
+          }
         }
       }
     }
   };
 
-  // Handle Perplexity search
+  // Handle Perplexity search with error handling
   useEffect(() => {
     if (activeView === 'browser' && currentQuery) {
       const searchUrl = `https://www.perplexity.ai/search?q=${encodeURIComponent(currentQuery)}&focus=internet`;
       const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
 
-      if (defaultTabState.isReady && webview) {
-        webview.loadURL(searchUrl);
-        setActiveTab(DEFAULT_PERPLEXITY_URL);
+      if (defaultTabState.isReady && webview && !defaultTabState.isLoading) {
+        setDefaultTabState(prev => ({ ...prev, isLoading: true }));
+        try {
+          webview.loadURL(searchUrl);
+          setActiveTab(DEFAULT_PERPLEXITY_URL);
+        } catch (error) {
+          console.error('Error loading search URL:', error);
+          setDefaultTabState(prev => ({ ...prev, isLoading: false }));
+        }
       } else {
         pendingSearchRef.current = searchUrl;
       }
@@ -179,6 +208,7 @@ export const BrowserWindow = ({
             activeTab={activeTab}
             webviewRefs={webviewRefs}
             onWebViewReady={handleWebViewReady}
+            onWebViewError={handleWebViewError}
           />
         </div>
       )}
