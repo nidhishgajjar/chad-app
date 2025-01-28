@@ -122,8 +122,8 @@ function createWindow() {
       contextIsolation: true,
       enableRemoteModule: false,
       webviewTag: true,
-      // preload: path.join(__dirname, '../build/preload.js'),
-      // preload: path.join(__dirname, '../public/preload.js'),
+      webSecurity: true,
+      allowRunningInsecureContent: false,
       preload: path.join(__dirname, isDevelopment ? '../public/preload.js' : '../build/preload.js'),
     },
     y: 30,
@@ -159,6 +159,18 @@ app.on('ready', () => {
   log.info('App version: ', appVersion);
   user.pageview('/').send();
   sendOSInfoToAnalytics();
+
+  // Set session permissions for webview
+  const ses = require('electron').session;
+  ses.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: ws:"]
+      }
+    });
+  });
+
   const updateInterval = 60 * 60 * 1000;
   setInterval(() => {
     autoUpdater.checkForUpdates();

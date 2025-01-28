@@ -1,25 +1,27 @@
 import React, { useState, useContext, useEffect } from "react";
-import { LangInterfaceContext } from "../../../contexts/langfacecontext";
+import { ViewStateContext } from "../../../contexts/viewstate";
 
 export const ShortcutChange = () => {
   const dummyShortcuts = ["Option+Space", "Control+Option+Space", "Shift+Option+Space"];
   const [selectedShortcut, setSelectedShortcut] = useState(dummyShortcuts[0]);
-  const { langInterfaceVisible, setLangInterfaceVisible, quickSearchVisible, setQuickSearchVisible, changeShortcutVisible, setChangeShortcutVisible } =
-  useContext(LangInterfaceContext);
+  const [isVisible, setIsVisible] = useState(false);
+  const { setActiveView } = useContext(ViewStateContext);
 
   const ipcRenderer = window.electron ? window.electron.ipcRenderer : null;
 
   useEffect(() => {
     const handleShortcutChange = () => {
-      setChangeShortcutVisible(true);
+      setIsVisible(true);
     };
 
-    window.electron?.ipcRenderer.on("shortcut-change", handleShortcutChange);
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.on("shortcut-change", handleShortcutChange);
 
-    return () => {
-      window.electron?.ipcRenderer.removeListener("shortcut-change", handleShortcutChange);
-    };
-  }, [setChangeShortcutVisible]);
+      return () => {
+        window.electron.ipcRenderer.on("shortcut-change", handleShortcutChange);
+      };
+    }
+  }, []);
 
   // Function to convert 'Option' back to 'Alt' for IPC message
   const convertShortcutForIpc = (shortcut) => {
@@ -28,13 +30,13 @@ export const ShortcutChange = () => {
 
   useEffect(() => {
     if (ipcRenderer) {
-      if (changeShortcutVisible) {
+      if (isVisible) {
         ipcRenderer.send("set-window-height", 200);
       } else {
         ipcRenderer.send("reset-to-search");
       }
     }
-  }, [changeShortcutVisible, ipcRenderer]);
+  }, [isVisible, ipcRenderer]);
 
   const handleSaveShortcut = () => {
     const shortcutForIpc = convertShortcutForIpc(selectedShortcut);
@@ -48,20 +50,18 @@ export const ShortcutChange = () => {
       shortcutForIpc
     );
 
-    setChangeShortcutVisible(false);
-    setLangInterfaceVisible(false);
-    setQuickSearchVisible(false);
+    setIsVisible(false);
+    setActiveView('none');
   };
 
   const handleCancel = () => {
-    setChangeShortcutVisible(false);
-    setQuickSearchVisible(false);
-    setLangInterfaceVisible(false);
+    setIsVisible(false);
+    setActiveView('none');
   };
 
   return (
     <>
-      {changeShortcutVisible === true && (
+      {isVisible && (
         <div className="bg-white p-4 w-full h-screen mx-auto shadow-lg rounded-md">
           <h1 className="text-xl font-bold mb-4">Change Shortcut</h1>
           <div className="mb-4">

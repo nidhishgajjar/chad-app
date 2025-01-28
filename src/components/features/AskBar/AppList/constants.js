@@ -1,6 +1,6 @@
 export const DEFAULT_APPS = [
-  { url: 'https://chat.openai.com' },
-  { url: 'https://claude.ai/chats' },
+  { url: 'https://chatgpt.com' },
+  { url: 'https://claude.ai' },
   { url: 'https://notion.so' },
   { url: 'https://twitter.com' },
   { url: 'https://youtube.com' },

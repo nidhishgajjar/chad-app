@@ -1,124 +1,181 @@
-import React, { useContext, useRef, useState, useEffect } from "react";
-import { LangInterfaceContext } from "../../../contexts/langfacecontext";
+import React, { useContext, useRef, useEffect, useState } from "react";
+import { ViewStateContext } from "../../../contexts/viewstate";
 import { SearchContext } from "../../../contexts/search";
 import { NavigationBar } from "./NavigationBar";
 import { TabList } from "./TabList";
 import { WebViewContainer } from "./WebViewContainer";
-import { FIXED_TABS } from "./constants";
+import { FIXED_TABS, DEFAULT_PERPLEXITY_URL } from "./constants";
 
 export const AppWindow = ({ 
-  googleSearch, 
-  setGoogleSearch, 
   activeApp, 
-  tabs, 
+  tabs: initialTabs = [DEFAULT_PERPLEXITY_URL],
   setTabs, 
-  activeTab, 
-  setActiveTab 
+  activeTab: externalActiveTab,
+  setActiveTab: setExternalActiveTab 
 }) => {
-  const { changeShortcutVisible, quickSearchVisible, setQuickSearchVisible } = useContext(LangInterfaceContext);
+  const { activeView, setActiveView, setCurrentQuery, currentQuery } = useContext(ViewStateContext);
   const { handleClearClick } = useContext(SearchContext);
   const webviewRefs = useRef({});
-  const [closedTabs, setClosedTabs] = useState([]);
+  const [readyWebviews, setReadyWebviews] = useState(new Set());
+  const pendingSearchRef = useRef(null);
 
+  // Track internal tab state
+  const [internalTabs, setInternalTabs] = useState(() => {
+    return Array.isArray(initialTabs) ? 
+      (initialTabs.includes(DEFAULT_PERPLEXITY_URL) ? initialTabs : [DEFAULT_PERPLEXITY_URL, ...initialTabs]) : 
+      [DEFAULT_PERPLEXITY_URL];
+  });
+
+  // Track default tab state separately
+  const [defaultTabState, setDefaultTabState] = useState({
+    url: DEFAULT_PERPLEXITY_URL,
+    isReady: false
+  });
+
+  // Maintain internal active tab state
+  const [activeTab, setInternalActiveTab] = useState(externalActiveTab || DEFAULT_PERPLEXITY_URL);
+
+  // Sync internal and external active tab states
+  const setActiveTab = (tab) => {
+    setInternalActiveTab(tab);
+    setExternalActiveTab(tab);
+  };
+
+  // Sync internal tabs with external tabs
   useEffect(() => {
-    const updatedTabs = tabs.map(tab => {
-      if (tab.startsWith('https://www.perplexity.ai/search?q=')) {
-        return `https://www.perplexity.ai/search?q=${encodeURIComponent(googleSearch)}&focus=internet`;
-      }
-      return tab;
+    if (initialTabs && !arraysEqual(initialTabs, internalTabs)) {
+      setInternalTabs(
+        initialTabs.includes(DEFAULT_PERPLEXITY_URL) ? 
+          initialTabs : 
+          [DEFAULT_PERPLEXITY_URL, ...initialTabs]
+      );
+    }
+  }, [initialTabs]);
+
+  // Helper function to compare arrays
+  const arraysEqual = (a, b) => {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    return a.every((val, index) => val === b[index]);
+  };
+
+  // Set default tab as active if no tabs or on search
+  useEffect(() => {
+    if (internalTabs.length === 1 || (activeView === 'browser' && currentQuery)) {
+      setActiveTab(DEFAULT_PERPLEXITY_URL);
+    }
+  }, [internalTabs.length, activeView, currentQuery]);
+
+  // Sync with external active tab changes
+  useEffect(() => {
+    if (externalActiveTab && externalActiveTab !== activeTab) {
+      setInternalActiveTab(externalActiveTab);
+    }
+  }, [externalActiveTab]);
+
+  const handleWebViewReady = (tabUrl) => {
+    setReadyWebviews(prev => {
+      const next = new Set(prev);
+      next.add(tabUrl);
+      return next;
     });
 
-    FIXED_TABS.forEach(tab => {
-      if (!updatedTabs.includes(tab)) {
-        updatedTabs.push(tab);
+    if (tabUrl === DEFAULT_PERPLEXITY_URL) {
+      setDefaultTabState(prev => ({ ...prev, isReady: true }));
+      
+      if (pendingSearchRef.current) {
+        const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
+        if (webview) {
+          webview.loadURL(pendingSearchRef.current);
+          pendingSearchRef.current = null;
+          setActiveTab(DEFAULT_PERPLEXITY_URL);
+        }
       }
-    });
-
-    if (JSON.stringify(updatedTabs) !== JSON.stringify(tabs)) {
-      setTabs(updatedTabs);
     }
-  }, [googleSearch, tabs]);
+  };
 
+  // Handle Perplexity search
   useEffect(() => {
-    const currentWebview = webviewRefs.current[activeTab];
-    if (currentWebview) {
-      currentWebview.addEventListener('did-navigate', (e) => {
-        // Update the favicon if needed
-        const newTabUrl = e.url;
-        const faviconUrl = `https://www.google.com/s2/favicons?sz=16&domain=${newTabUrl}`;
-      });
+    if (activeView === 'browser' && currentQuery) {
+      const searchUrl = `https://www.perplexity.ai/search?q=${encodeURIComponent(currentQuery)}&focus=internet`;
+      const webview = webviewRefs.current[DEFAULT_PERPLEXITY_URL];
+
+      if (defaultTabState.isReady && webview) {
+        webview.loadURL(searchUrl);
+        setActiveTab(DEFAULT_PERPLEXITY_URL);
+      } else {
+        pendingSearchRef.current = searchUrl;
+      }
     }
-  }, [activeTab]);
+  }, [activeView, currentQuery, defaultTabState.isReady]);
 
+  // Handle bookmark/app clicks
   useEffect(() => {
-    if (activeApp && !tabs.includes(activeApp) && closedTabs.includes(activeApp)) {
-      setTabs(prevTabs => [...prevTabs, activeApp]);
+    if (activeApp && activeView === 'browser') {
+      if (!internalTabs.includes(activeApp)) {
+        const defaultTabIndex = internalTabs.indexOf(DEFAULT_PERPLEXITY_URL);
+        const newTabs = [...internalTabs];
+        newTabs.splice(defaultTabIndex + 1, 0, activeApp);
+        setInternalTabs(newTabs);
+        setTabs(newTabs);
+      }
       setActiveTab(activeApp);
     }
-  }, [activeApp, tabs, closedTabs]);
+  }, [activeApp, activeView]);
 
   const handleHomeClick = () => {
-    setQuickSearchVisible(false);
-    setGoogleSearch("");
+    setActiveView('none');
+    setCurrentQuery("");
     handleClearClick();
   };
 
-  const handleNavigation = {
-    back: () => {
-      const currentWebview = webviewRefs.current[activeTab];
-      if (currentWebview?.canGoBack()) {
-        currentWebview.goBack();
-      }
-    },
-    forward: () => {
-      const currentWebview = webviewRefs.current[activeTab];
-      if (currentWebview?.canGoForward()) {
-        currentWebview.goForward();
-      }
-    },
-    reload: () => {
-      const currentWebview = webviewRefs.current[activeTab];
-      if (currentWebview) {
-        currentWebview.reload();
-      }
-    }
-  };
-
   const handleCloseTab = (tabToClose) => {
-    if (FIXED_TABS.includes(tabToClose)) {
+    if (tabToClose === DEFAULT_PERPLEXITY_URL) {
       return;
     }
 
-    setTabs(prevTabs => {
-      const newTabs = prevTabs.filter(tab => tab !== tabToClose);
-      if (activeTab === tabToClose && newTabs.length > 0) {
-        setActiveTab(newTabs[0]);
-      }
-      return newTabs;
-    });
+    const closingIndex = internalTabs.indexOf(tabToClose);
+    if (closingIndex === -1) return;
+
+    const newTabs = internalTabs.filter(tab => tab !== tabToClose);
+
+    // Update both internal and external tab states
+    setInternalTabs(newTabs);
+    setTabs(newTabs);
+
+    // Handle active tab changes
+    if (activeTab === tabToClose) {
+      const newActiveIndex = Math.max(0, closingIndex - 1);
+      const newActiveTab = newTabs[newActiveIndex] || DEFAULT_PERPLEXITY_URL;
+      setActiveTab(newActiveTab);
+    }
+
+    // Clean up webview reference
+    if (webviewRefs.current[tabToClose]) {
+      delete webviewRefs.current[tabToClose];
+    }
   };
 
   return (
     <div className="fixed flex flex-col w-full h-full p-5 md:px-5 py-5">
-      {quickSearchVisible && !changeShortcutVisible && (
+      {activeView === 'browser' && (
         <div className="flex flex-col h-full">
           <NavigationBar
             onHomeClick={handleHomeClick}
-            onBackClick={handleNavigation.back}
-            onForwardClick={handleNavigation.forward}
-            onReloadClick={handleNavigation.reload}
           />
           <TabList
-            tabs={tabs}
+            tabs={internalTabs}
             activeTab={activeTab}
             onTabClick={setActiveTab}
             onCloseTab={handleCloseTab}
             fixedTabs={FIXED_TABS}
           />
           <WebViewContainer
-            tabs={tabs}
+            tabs={internalTabs}
             activeTab={activeTab}
             webviewRefs={webviewRefs}
+            onWebViewReady={handleWebViewReady}
           />
         </div>
       )}

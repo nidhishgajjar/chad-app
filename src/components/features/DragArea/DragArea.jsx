@@ -1,12 +1,11 @@
 import React, { useContext } from "react";
-import { LangInterfaceContext } from "../../../contexts/langfacecontext";
+import { ViewStateContext } from "../../../contexts/viewstate";
 
 export const DragArea = () => {
-  const { setLangInterfaceVisible, setQuickSearchVisible } = useContext(LangInterfaceContext);
+  const { setActiveView } = useContext(ViewStateContext);
 
   const handleDragArea = () => {
-    setLangInterfaceVisible(false);
-    setQuickSearchVisible(false);
+    setActiveView('none');
   };
 
   return (
