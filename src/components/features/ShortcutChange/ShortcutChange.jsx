@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import LangInterfaceContext from "../contexts/langfacecontext";
+import { LangInterfaceContext } from "../../../contexts/langfacecontext";
 
 export const ShortcutChange = () => {
   const dummyShortcuts = ["Option+Space", "Control+Option+Space", "Shift+Option+Space"];
@@ -10,25 +10,21 @@ export const ShortcutChange = () => {
   const ipcRenderer = window.electron ? window.electron.ipcRenderer : null;
 
   useEffect(() => {
-    const toggleChangeShortcut = () => {
-      setChangeShortcutVisible((prev) => !prev);
+    const handleShortcutChange = () => {
+      setChangeShortcutVisible(true);
     };
 
-    if (ipcRenderer) {
-      ipcRenderer.on("toggle-change-shortcut", toggleChangeShortcut);
-    }
+    window.electron?.ipcRenderer.on("shortcut-change", handleShortcutChange);
 
     return () => {
-      if (ipcRenderer) ipcRenderer.removeListener("toggle-change-shortcut", toggleChangeShortcut);
+      window.electron?.ipcRenderer.removeListener("shortcut-change", handleShortcutChange);
     };
   }, [setChangeShortcutVisible]);
 
-
-   // Function to convert 'Option' back to 'Alt' for IPC message
+  // Function to convert 'Option' back to 'Alt' for IPC message
   const convertShortcutForIpc = (shortcut) => {
     return shortcut.replace("Option", "Alt");
   };
-
 
   useEffect(() => {
     if (ipcRenderer) {
@@ -39,7 +35,6 @@ export const ShortcutChange = () => {
       }
     }
   }, [changeShortcutVisible, ipcRenderer]);
-
 
   const handleSaveShortcut = () => {
     const shortcutForIpc = convertShortcutForIpc(selectedShortcut);

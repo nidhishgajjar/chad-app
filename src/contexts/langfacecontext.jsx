@@ -1,11 +1,12 @@
 import React, { useState, createContext } from "react";
 
-const LangInterfaceContext = createContext();
+export const LangInterfaceContext = createContext();
 
 export const LangInterfaceProvider = ({ children }) => {
   const [langInterfaceVisible, setLangInterfaceVisible] = useState(false);
   const [quickSearchVisible, setQuickSearchVisible] = useState(false);
   const [changeShortcutVisible, setChangeShortcutVisible] = useState(false);
+  
   return (
     <LangInterfaceContext.Provider
       value={{

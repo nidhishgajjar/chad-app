@@ -3,9 +3,9 @@ import React, {
   useState,
   createContext,
 } from "react";
-import LangInterfaceContext from "./langfacecontext";
+import { LangInterfaceContext } from "./langfacecontext";
 
-const SearchContext = createContext();
+export const SearchContext = createContext();
 
 export const SearchProvider = ({ children }) => {
 

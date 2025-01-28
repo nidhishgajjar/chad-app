@@ -1,8 +1,8 @@
 import React from 'react';
-import { auth } from '../firebase.js';
+import { auth } from '../../../firebase.js';
 import { signOut } from "firebase/auth";
 
-const Subscribe = ({ setUser }) => { 
+export const Subscribe = ({ setUser }) => { 
 
     const handleSignOut = () => {
         signOut(auth).then(() => {
@@ -51,5 +51,3 @@ const Subscribe = ({ setUser }) => {
         </div>
     );
 };
-
-export default Subscribe;

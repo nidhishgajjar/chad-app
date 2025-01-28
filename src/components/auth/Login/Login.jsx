@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { auth } from '../firebase.js';
+import { auth } from '../../../firebase.js';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 
-const Login = () => {
+export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(null);
@@ -145,5 +145,3 @@ const Login = () => {
     </div>
   );
 };
-
-export default Login;

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { auth } from '../firebase.js';
+import { auth } from '../../../firebase.js';
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
-const Signup = () => {
+export const Signup = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,5 +56,3 @@ const Signup = () => {
     </div>
   );
 };
-
-export default Signup;

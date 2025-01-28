@@ -1,6 +1,6 @@
 {
   "name": "air-light",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Modern light weight, more accessible browsing experience.",
   "author": "airlight",
   "private": true,
@@ -109,7 +109,7 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "electron": "^26.2.4",
-    "electron-builder": "^24.6.4"
+    "electron": "^34.0.1",
+    "electron-builder": "^25.1.8"
   }
 }

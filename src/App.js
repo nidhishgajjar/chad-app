@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { auth, getUserDocument } from './firebase.js';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
-import { AskBar } from './components/askbar';
-import { DragArea } from './components/dragarea';
-import { ShortcutChange } from './components/shortcutchange';
-import Subscribe from './components/subscribe';
-import Login from './components/login';
+import { AskBar } from './components/features/AskBar/AskBar';
+import { DragArea } from './components/features/DragArea/DragArea';
+import { ShortcutChange } from './components/features/ShortcutChange/ShortcutChange';
+import { Subscribe } from './components/auth/Subscribe/Subscribe';
+import { Login } from './components/auth/Login/Login';
 
 function App() {
   const [user, setUser] = useState(null);
