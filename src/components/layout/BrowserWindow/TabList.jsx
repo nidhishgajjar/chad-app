@@ -197,39 +197,173 @@ export const TabList = ({
     stopScrolling();
   };
 
-  return (
+  // Navigation handlers
+  const handleBack = () => {
+    console.log('🔄 Attempting to go back');
+    const webview = webviewRefs.current[activeTab];
+    if (webview && webview.canGoBack()) {
+      console.log('✅ Going back');
+      webview.goBack();
+    } else {
+      console.log('❌ Cannot go back');
+    }
+  };
+
+  const handleForward = () => {
+    console.log('🔄 Attempting to go forward');
+    const webview = webviewRefs.current[activeTab];
+    if (webview && webview.canGoForward()) {
+      console.log('✅ Going forward');
+      webview.goForward();
+    } else {
+      console.log('❌ Cannot go forward');
+    }
+  };
+
+  const handleReload = () => {
+    const webview = webviewRefs.current[activeTab];
+    if (webview) {
+      webview.reload();
+    }
+  };
+
+  // Handle swipe gestures through IPC
+  useEffect(() => {
+    console.log('🔍 Setting up swipe gesture handler for tab:', activeTab);
+    const webview = webviewRefs.current[activeTab];
+    
+    if (webview) {
+      console.log('✅ Found webview for tab:', activeTab);
+      
+      const handleSwipe = (direction) => {
+        console.log('🔄 Received swipe event:', direction);
+        console.log('Current webview state:', {
+          canGoBack: webview.canGoBack?.(),
+          canGoForward: webview.canGoForward?.(),
+          ready: !!webview.getWebContentsId
+        });
+
+        if (direction === 'right') {
+          handleBack();
+        } else if (direction === 'left') {
+          handleForward();
+        }
+      };
+
+      console.log('🔄 Registering swipe event handler');
+      const cleanup = window.electron?.ipcRenderer?.on('swipe', handleSwipe);
+
+      return () => {
+        console.log('🧹 Cleaning up swipe handler for tab:', activeTab);
+        if (cleanup) cleanup();
+      };
+    } else {
+      console.log('❌ No webview found for tab:', activeTab);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    console.log('Setting up navigation handlers');
+    const webview = webviewRefs.current[activeTab];
+    
+    if (webview) {
+      // Wait for webview to be ready
+      const handleDomReady = () => {
+        console.log('Webview ready:', {
+          canGoBack: webview.canGoBack(),
+          canGoForward: webview.canGoForward()
+        });
+
+        // Log navigation state changes
+        webview.addEventListener('did-navigate', () => {
+          console.log('Navigation state:', {
+            canGoBack: webview.canGoBack(),
+            canGoForward: webview.canGoForward()
+          });
+        });
+      };
+
+      webview.addEventListener('dom-ready', handleDomReady);
+      
+      return () => {
+        webview.removeEventListener('dom-ready', handleDomReady);
+      };
+    }
+  }, [activeTab]);
+
+    return (
     <div 
       className="flex items-center h-10 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-lg border-b border-neutral-200 dark:border-neutral-700"
       onMouseLeave={handleTabListMouseLeave}
     >
-      <motion.div
-        data-tab={DEFAULT_PERPLEXITY_URL}
-        layout
-        className={`
-          group flex items-center w-10 h-8 px-3 mx-1 rounded-lg flex-shrink-0
-          cursor-pointer transition-all duration-200 relative
-          ${activeTab === DEFAULT_PERPLEXITY_URL 
-            ? 'bg-neutral-100 dark:bg-neutral-700 shadow-sm' 
-            : 'hover:bg-neutral-100 dark:hover:bg-neutral-700/50'}
-        `}
-        onClick={() => handleTabClick(DEFAULT_PERPLEXITY_URL)}
-      >
-        <img 
-          src={getFaviconUrl(DEFAULT_PERPLEXITY_URL)} 
-          alt="Perplexity"
-          className="w-4 h-4 rounded-sm"
-          onError={(e) => e.target.style.display = 'none'}
-        />
-        {activeTab === DEFAULT_PERPLEXITY_URL && (
-          <motion.div
-            layoutId="activeTab"
-            className="absolute inset-0 bg-neutral-200 dark:bg-neutral-600 rounded-lg -z-10"
-            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-          />
-        )}
-      </motion.div>
+         
 
-      <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-1" />
+<motion.div
+  data-tab={DEFAULT_PERPLEXITY_URL}
+  layout
+  className={`
+    group flex items-center w-10 h-8 px-3 mx-2 rounded-lg flex-shrink-0
+    cursor-pointer transition-all duration-200 relative
+    ${activeTab === DEFAULT_PERPLEXITY_URL 
+      ? 'bg-neutral-100 dark:bg-neutral-700 shadow-sm' 
+      : 'hover:bg-neutral-100 dark:hover:bg-neutral-700/50'}
+  `}
+  onClick={() => handleTabClick(DEFAULT_PERPLEXITY_URL)}
+>
+  <img 
+    src={getFaviconUrl(DEFAULT_PERPLEXITY_URL)} 
+    alt="Perplexity"
+    className="w-4 h-4 rounded-sm"
+    onError={(e) => e.target.style.display = 'none'}
+  />
+  {activeTab === DEFAULT_PERPLEXITY_URL && (
+    <motion.div
+      layoutId="activeTab"
+      className="absolute inset-0 bg-neutral-200 dark:bg-neutral-600 rounded-lg -z-10"
+      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+    />
+  )}
+</motion.div>
+
+<div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-2" />
+
+{/* Navigation Controls */}
+<div className="flex items-center space-x-2">
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={handleBack}
+    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors"
+  >
+    <svg className="w-4 h-4 text-neutral-600 dark:text-neutral-300" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+    </svg>
+  </motion.button>
+
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={handleForward}
+    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors"
+  >
+    <svg className="w-4 h-4 text-neutral-600 dark:text-neutral-300" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+    </svg>
+  </motion.button>
+
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={handleReload}
+    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors"
+  >
+    <svg className="w-4 h-4 text-neutral-600 dark:text-neutral-300" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+    </svg>
+  </motion.button>
+</div>
+
+<div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-2" />
 
       <div 
         className="w-5 h-8 flex-shrink-0 relative"
@@ -264,7 +398,7 @@ export const TabList = ({
           const isFixed = fixedTabs?.includes(tab);
           const title = getTabTitle(tab);
 
-          return (
+  return (
             <motion.div
               key={tab}
               data-tab={tab}
@@ -305,7 +439,7 @@ export const TabList = ({
                   <svg className="w-3 h-3 text-neutral-500 dark:text-neutral-400" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
-                      d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                      d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 17.59 13.41 12z"
                     />
                   </svg>
             </button>
@@ -349,9 +483,9 @@ export const TabList = ({
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center px-2 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-xs text-neutral-600 dark:text-neutral-300"
+            className="flex items-center px-2 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-xs text-neutral-600 dark:text-neutral-300 ml-2 mr-4"
           >
-            <span>{tabs.length} tabs</span>
+            <span>{tabs.filter(tab => tab !== DEFAULT_PERPLEXITY_URL).length} tabs</span>
           </motion.button>
         </div>
       )}

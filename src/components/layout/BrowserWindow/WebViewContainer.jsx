@@ -41,7 +41,7 @@ export const WebViewContainer = ({
       <AnimatePresence mode="wait">
         {tabs.map((tabUrl) => (
           <motion.div
-            key={tabUrl}
+          key={tabUrl}
             initial={{ opacity: 0 }}
             animate={{ 
               opacity: activeTab === tabUrl ? 1 : 0,
@@ -53,17 +53,17 @@ export const WebViewContainer = ({
             style={{ zIndex: activeTab === tabUrl ? 1 : 0 }}
           >
             <webview
-              ref={el => webviewRefs.current[tabUrl] = el}
-              src={tabUrl}
+          ref={el => webviewRefs.current[tabUrl] = el}
+          src={tabUrl}
               className="w-full h-full bg-white dark:bg-neutral-900"
               allowpopups="true"
               webpreferences="contextIsolation=yes, nodeIntegration=no"
               partition="persist:main"
               httpreferrer="https://www.perplexity.ai"
-            />
+        />
           </motion.div>
-        ))}
+      ))}
       </AnimatePresence>
     </div>
   );
-}; 
+};

@@ -129,7 +129,7 @@ function createWindow() {
     y: 30,
   });
 
-  mainWindow.center(); 
+  mainWindow.center();
 
   // mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
   // mainWindow.loadURL('http://localhost:3000');

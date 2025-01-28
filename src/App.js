@@ -3,7 +3,6 @@ import { auth, getUserDocument } from './firebase.js';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 import { AskBar } from './components/features/AskBar/AskBar';
-import { DragArea } from './components/features/DragArea/DragArea';
 import { ShortcutChange } from './components/features/ShortcutChange/ShortcutChange';
 import { Subscribe } from './components/auth/Subscribe/Subscribe';
 import { Login } from './components/auth/Login/Login';
@@ -56,7 +55,6 @@ function App() {
     if (paid === true || currentDate <= allowedTrialEndDate) {
       return (
         <>
-          <DragArea />
           <ShortcutChange />
           <AskBar />
         </>
