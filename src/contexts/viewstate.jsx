@@ -9,9 +9,9 @@ export const ViewStateProvider = ({ children }) => {
   useEffect(() => {
     if (window.electron) {
       if (activeView === 'browser') {
-        window.electron.ipcRenderer.send("quickSearchRequested", true);
+        window.electron.ipcRenderer.send("browserRequested", true);
       } else if (activeView === 'aiAgent') {
-        window.electron.ipcRenderer.send("showLangInterface", true);
+        window.electron.ipcRenderer.send("aiAgentRequested", true);
       } else {
         window.electron.ipcRenderer.send("reset-to-search");
       }

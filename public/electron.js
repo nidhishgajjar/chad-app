@@ -224,13 +224,13 @@ app.on('ready', () => {
     user.event('App', 'Clicked on External Link').send();
   });
 
-  ipcMain.on('quickSearchRequested', (event, onRequest) => {
+  ipcMain.on('browserRequested', (event, onRequest) => {
     const newHeight = onRequest ? newHRequest : 48;
     const currentWidth = mainWindow.getBounds().width;
     mainWindow.setSize(currentWidth, newHeight, true);
   });
 
-  ipcMain.on('showLangInterface', (event, interfaceVisible) => {
+  ipcMain.on('aiAgentRequested', (event, interfaceVisible) => {
     if (interfaceVisible) {
       const currentWidth = mainWindow.getBounds().width;
     mainWindow.setSize(currentWidth, newHInterface, true);
