@@ -1,13 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const WebViewContainer = ({
   tabs,
   activeTab,
-  webviewRefs,
+    webviewRefs,
   onWebViewReady,
   onWebViewError
 }) => {
+  const mountedRef = useRef(new Set());
+
   useEffect(() => {
     // Cleanup function to remove event listeners
     const cleanup = {};
@@ -17,6 +19,7 @@ export const WebViewContainer = ({
         if (onWebViewReady) {
           onWebViewReady(tabUrl);
         }
+        mountedRef.current.add(tabUrl);
       };
 
       const handleLoadAbort = (event, errorCode, errorDescription) => {
@@ -26,8 +29,8 @@ export const WebViewContainer = ({
       };
 
       const webview = webviewRefs.current[tabUrl];
-      if (webview) {
-        webview.addEventListener('dom-ready', handleDomReady);
+      if (webview && !mountedRef.current.has(tabUrl)) {
+          webview.addEventListener('dom-ready', handleDomReady);
         webview.addEventListener('did-fail-load', handleLoadAbort);
         cleanup[tabUrl] = {
           domReady: handleDomReady,
@@ -41,7 +44,7 @@ export const WebViewContainer = ({
       Object.entries(cleanup).forEach(([tabUrl, handlers]) => {
         const webview = webviewRefs.current[tabUrl];
         if (webview) {
-          webview.removeEventListener('dom-ready', handlers.domReady);
+            webview.removeEventListener('dom-ready', handlers.domReady);
           webview.removeEventListener('did-fail-load', handlers.loadAbort);
         }
       });
@@ -51,30 +54,39 @@ export const WebViewContainer = ({
   return (
     <div className="flex-grow relative">
       <AnimatePresence mode="wait">
-        {tabs.map((tabUrl) => (
-          <motion.div
-            key={tabUrl}
-            initial={{ opacity: 0 }}
-            animate={{ 
-              opacity: activeTab === tabUrl ? 1 : 0,
-              scale: activeTab === tabUrl ? 1 : 0.98
-            }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-            className={`absolute inset-0 ${activeTab === tabUrl ? 'pointer-events-auto' : 'pointer-events-none'}`}
-            style={{ zIndex: activeTab === tabUrl ? 1 : 0 }}
-          >
-            <webview
-              ref={el => webviewRefs.current[tabUrl] = el}
-              src={tabUrl}
-              className="w-full h-full bg-white dark:bg-neutral-900"
-              allowpopups="true"
-              webpreferences="contextIsolation=yes, nodeIntegration=no"
-              partition="persist:main"
-              httpreferrer="https://www.perplexity.ai"
-            />
-          </motion.div>
-        ))}
+        {tabs.map((tabUrl) => {
+          const isMounted = mountedRef.current.has(tabUrl);
+          return (
+            <motion.div
+              key={tabUrl}
+              initial={false}
+              animate={{ 
+                opacity: activeTab === tabUrl ? 1 : 0,
+                scale: activeTab === tabUrl ? 1 : 0.98
+              }}
+              transition={{ duration: 0.2 }}
+              className={`absolute inset-0 ${activeTab === tabUrl ? 'pointer-events-auto' : 'pointer-events-none'}`}
+              style={{ 
+                zIndex: activeTab === tabUrl ? 1 : 0,
+                visibility: activeTab === tabUrl ? 'visible' : 'hidden'
+              }}
+            >
+              <webview
+                ref={el => {
+                  if (el && !webviewRefs.current[tabUrl]) {
+                    webviewRefs.current[tabUrl] = el;
+                  }
+                }}
+                src={isMounted ? undefined : tabUrl}
+                className="w-full h-full bg-white dark:bg-neutral-900"
+                allowpopups="true"
+                webpreferences="contextIsolation=yes, nodeIntegration=no"
+                partition="persist:main"
+                httpreferrer="https://www.perplexity.ai"
+              />
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );

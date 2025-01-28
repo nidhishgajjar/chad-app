@@ -129,11 +129,11 @@ export const BrowserWindow = ({
         setDefaultTabState(prev => ({ ...prev, isLoading: true }));
         try {
           webview.loadURL(searchUrl);
-          setActiveTab(DEFAULT_PERPLEXITY_URL);
+      setActiveTab(DEFAULT_PERPLEXITY_URL);
         } catch (error) {
           console.error('Error loading search URL:', error);
           setDefaultTabState(prev => ({ ...prev, isLoading: false }));
-        }
+    }
       } else {
         pendingSearchRef.current = searchUrl;
       }
@@ -188,30 +188,28 @@ export const BrowserWindow = ({
   };
 
   return (
-    <div className="fixed flex flex-col w-full h-full">
-      {activeView === 'browser' && (
-        <div className="flex flex-col h-full bg-white dark:bg-neutral-900 rounded-lg overflow-hidden shadow-lg transition-all duration-200">
-          <NavigationBar
-            onHomeClick={handleHomeClick}
-          />
-          <TabList
-            tabs={internalTabs}
-            activeTab={activeTab}
-            onTabClick={setActiveTab}
-            onCloseTab={handleCloseTab}
-            fixedTabs={FIXED_TABS}
-            setTabs={setInternalTabs}
-            webviewRefs={webviewRefs}
-          />
-          <WebViewContainer
-            tabs={internalTabs}
-            activeTab={activeTab}
-            webviewRefs={webviewRefs}
-            onWebViewReady={handleWebViewReady}
-            onWebViewError={handleWebViewError}
-          />
-        </div>
-      )}
+    <div className={`fixed flex flex-col w-full h-full ${activeView !== 'browser' ? 'pointer-events-none opacity-0' : ''}`}>
+      <div className="flex flex-col h-full bg-white dark:bg-neutral-900 rounded-lg overflow-hidden shadow-lg transition-all duration-200">
+        <NavigationBar
+          onHomeClick={handleHomeClick}
+        />
+        <TabList
+          tabs={internalTabs}
+          activeTab={activeTab}
+          onTabClick={setActiveTab}
+          onCloseTab={handleCloseTab}
+          fixedTabs={FIXED_TABS}
+          setTabs={setInternalTabs}
+          webviewRefs={webviewRefs}
+        />
+        <WebViewContainer
+          tabs={internalTabs}
+          activeTab={activeTab}
+          webviewRefs={webviewRefs}
+          onWebViewReady={handleWebViewReady}
+          onWebViewError={handleWebViewError}
+        />
+      </div>
     </div>
   );
 }; 
