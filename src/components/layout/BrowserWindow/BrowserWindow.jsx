@@ -171,6 +171,8 @@ export const BrowserWindow = ({
             onTabClick={setActiveTab}
             onCloseTab={handleCloseTab}
             fixedTabs={FIXED_TABS}
+            setTabs={setInternalTabs}
+            webviewRefs={webviewRefs}
           />
           <WebViewContainer
             tabs={internalTabs}

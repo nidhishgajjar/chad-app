@@ -26,6 +26,17 @@
   background-color: rgba(75, 85, 99, 0.7);
 }
 
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 /* Smooth transitions */
 .tab-transition {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
