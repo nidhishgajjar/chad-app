@@ -6,7 +6,7 @@ import { SearchInput } from './SearchInput/SearchInput';
 import { AppList } from './AppList/AppList';
 import { BrowserWindow } from "../../layout/BrowserWindow/BrowserWindow";
 import { DEFAULT_PERPLEXITY_URL } from "../../layout/BrowserWindow/constants";
-import { AIAgent } from "../../layout/AIAgent/AIAgent";
+import AIAgentWindow from "../../layout/AIAgentWindow/AIAgentWindow";
 import './AskBar.css';
 
 export const AskBar = () => {
@@ -78,8 +78,8 @@ export const AskBar = () => {
       )}
 
       {activeView === 'aiAgent' && (
-       <AIAgent
-       currentQuery={currentQuery}
+       <AIAgentWindow
+          currentQuery={currentQuery}
        />
       )}
 
