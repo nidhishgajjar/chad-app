@@ -104,7 +104,7 @@ function setWindowBackgroundColor() {
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const winY = 30;
-  newHRequest = height - winY - 150;
+  newHRequest = height - winY - 250;
   newHInterface = height - winY - 150;
 
 
@@ -234,7 +234,7 @@ app.on('ready', () => {
     if (interfaceVisible) {
       const currentWidth = mainWindow.getBounds().width;
     mainWindow.setSize(currentWidth, newHInterface, true);
-    user.event('App', 'Lang Interface Enabled').send();
+    user.event('App', 'AI Agent Interface Enabled').send();
     }
   });
 
